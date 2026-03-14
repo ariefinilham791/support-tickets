@@ -44,21 +44,21 @@ st.set_page_config(
 def load_master_servers():
     conn = st.connection("gsheets", type=GSheetsConnection)
     ws = _worksheet_param("master_server", SHEET_MASTER_SERVER)
-    return conn.read(worksheet=ws)
+    return conn.read(spreadsheet=SPREADSHEET_URL, worksheet=ws)
 
 
 @st.cache_data(ttl=60)
 def load_components():
     conn = st.connection("gsheets", type=GSheetsConnection)
     ws = _worksheet_param("components", SHEET_COMPONENTS)
-    return conn.read(worksheet=ws)
+    return conn.read(spreadsheet=SPREADSHEET_URL, worksheet=ws)
 
 
 @st.cache_data(ttl=60)
 def load_log_pengecekan():
     conn = st.connection("gsheets", type=GSheetsConnection)
     ws = _worksheet_param("log_pengecekan", SHEET_LOG_PENGECEKAN)
-    return conn.read(worksheet=ws)
+    return conn.read(spreadsheet=SPREADSHEET_URL, worksheet=ws)
 
 
 def get_next_log_id(df_log: pd.DataFrame) -> int:
