@@ -1,0 +1,8 @@
+[browser]
+gatherUsageStats = false
+
+[theme]
+# Professional theme; works in both light and dark (user can toggle in Streamlit menu)
+base = "light"
+primaryColor = "#1E88E5"
+font = "sans serif"
