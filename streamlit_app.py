@@ -19,16 +19,19 @@ SHEET_MASTER_SERVER = "master_server"
 SHEET_COMPONENTS = "components"
 SHEET_LOG_PENGECEKAN = "log_pengecekan"
 
+# Worksheet GID for log_pengecekan (from tab URL #gid=...) — using GID avoids HTTP 400 with public sheets
+GID_LOG_PENGECEKAN = 727509916
 
-def _worksheet_param(sheet_key: str, name: str):
-    """Use worksheet from secrets (GID) if set, else sheet name. Avoids 400 when tab names differ."""
+
+def _worksheet_param(sheet_key: str, default_name_or_gid):
+    """Use worksheet from secrets if set (GID int), else default (name str or GID int)."""
     try:
         gid_key = f"worksheet_{sheet_key}"
         if hasattr(st.secrets.connections.gsheets, gid_key):
             return int(getattr(st.secrets.connections.gsheets, gid_key))
     except Exception:
         pass
-    return name
+    return default_name_or_gid
 
 st.set_page_config(
     page_title="DC Infrastructure Monitoring",
@@ -57,7 +60,7 @@ def load_components():
 @st.cache_data(ttl=60)
 def load_log_pengecekan():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    ws = _worksheet_param("log_pengecekan", SHEET_LOG_PENGECEKAN)
+    ws = _worksheet_param("log_pengecekan", GID_LOG_PENGECEKAN)
     return conn.read(spreadsheet=SPREADSHEET_URL, worksheet=ws)
 
 
