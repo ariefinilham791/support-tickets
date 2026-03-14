@@ -19,6 +19,17 @@ SHEET_MASTER_SERVER = "master_server"
 SHEET_COMPONENTS = "components"
 SHEET_LOG_PENGECEKAN = "log_pengecekan"
 
+
+def _worksheet_param(sheet_key: str, name: str):
+    """Use worksheet from secrets (GID) if set, else sheet name. Avoids 400 when tab names differ."""
+    try:
+        gid_key = f"worksheet_{sheet_key}"
+        if hasattr(st.secrets.connections.gsheets, gid_key):
+            return int(getattr(st.secrets.connections.gsheets, gid_key))
+    except Exception:
+        pass
+    return name
+
 st.set_page_config(
     page_title="DC Infrastructure Monitoring",
     page_icon="🖥️",
@@ -32,19 +43,22 @@ st.set_page_config(
 @st.cache_data(ttl=60)
 def load_master_servers():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    return conn.read(spreadsheet=SPREADSHEET_URL, worksheet=SHEET_MASTER_SERVER)
+    ws = _worksheet_param("master_server", SHEET_MASTER_SERVER)
+    return conn.read(worksheet=ws)
 
 
 @st.cache_data(ttl=60)
 def load_components():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    return conn.read(spreadsheet=SPREADSHEET_URL, worksheet=SHEET_COMPONENTS)
+    ws = _worksheet_param("components", SHEET_COMPONENTS)
+    return conn.read(worksheet=ws)
 
 
 @st.cache_data(ttl=60)
 def load_log_pengecekan():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    return conn.read(spreadsheet=SPREADSHEET_URL, worksheet=SHEET_LOG_PENGECEKAN)
+    ws = _worksheet_param("log_pengecekan", SHEET_LOG_PENGECEKAN)
+    return conn.read(worksheet=ws)
 
 
 def get_next_log_id(df_log: pd.DataFrame) -> int:
@@ -136,7 +150,14 @@ if current_page == "form":
         df_components = load_components()
         df_log = load_log_pengecekan()
     except Exception as e:
-        st.error(f"Could not load data from Google Sheets. Check URL and sheet names. Error: {e}")
+        err = str(e)
+        st.error(f"Could not load data from Google Sheets. Error: {err}")
+        if "400" in err or "Bad Request" in err:
+            st.info(
+                "**If you see 400 Bad Request:** (1) Ensure the spreadsheet URL is in `.streamlit/secrets.toml` under `[connections.gsheets]` → `spreadsheet = \"...\"`. "
+                "(2) Share the sheet as **Anyone with the link** (Viewer). "
+                "(3) Use sheet tab names exactly: **master_server**, **components**, **log_pengecekan** — or in `secrets.toml` set `worksheet_master_server`, `worksheet_components`, `worksheet_log_pengecekan` to the numeric GID of each tab (from the tab URL #gid=…)."
+            )
         st.stop()
 
     if df_master.empty:
@@ -250,7 +271,10 @@ elif current_page == "history":
     try:
         df_log = load_log_pengecekan()
     except Exception as e:
-        st.error(f"Could not load logs: {e}")
+        err = str(e)
+        st.error(f"Could not load logs: {err}")
+        if "400" in err or "Bad Request" in err:
+            st.info("Check `.streamlit/secrets.toml` has `[connections.gsheets]` with `spreadsheet` URL, sheet is shared, and tab names are **master_server**, **components**, **log_pengecekan** (or set worksheet_* GIDs in secrets).")
         st.stop()
 
     if df_log.empty:
@@ -308,7 +332,10 @@ elif current_page == "analytics":
         df_master = load_master_servers()
         df_log = load_log_pengecekan()
     except Exception as e:
-        st.error(f"Could not load data: {e}")
+        err = str(e)
+        st.error(f"Could not load data: {err}")
+        if "400" in err or "Bad Request" in err:
+            st.info("Check `.streamlit/secrets.toml` has `[connections.gsheets]` with `spreadsheet` URL and sheet tab names (or worksheet_* GIDs).")
         st.stop()
 
     cols_lower_log = {c.lower().replace(" ", "_"): c for c in df_log.columns}
